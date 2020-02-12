@@ -4,18 +4,24 @@ import mysql.connector
 
 
 class DataBase():
-    def __init__(self, host, port, user, passwd, database, table, columns, rows):
+    def __init__(self, host, port, user, passwd, database, table, rows):
         self.host = host
         self.port = port
         self.user = user
         self.passwd= passwd
         self.database = database
         self.table = table
-        self.columns = columns
         self.rows = rows
         self.conn = mysql.connector.connect(host=self.host, port=self.port, user=self.user,
                                        password=self.passwd, database=self.database, charset='utf8')
         self.cursor = self.conn.cursor()
+
+        # 直接从数据库中获取表的columns名称
+        self.cursor.execute("SHOW COLUMNS from " + str(self.table))
+        columns_info = self.cursor.fetchall()
+        self.columns = [column_info[0] for column_info in columns_info]
+        self.columns = tuple(self.columns)
+        self.columns = str(self.columns).replace('\'', '')
 
     def push(self):
         for row in self.rows:
@@ -30,11 +36,17 @@ class DataBase():
 
         self.conn.commit()
 
-        self.cursor.execute("select * from " + str(self.table))
+    def select_column_to_print(self, column):
+        #选择需要打印哪些列
+        column = str(column).replace('\'', '')
+        select_column_sentence = "select " + str(column) + " from " + str(self.table)
+        self.cursor.execute(select_column_sentence)
         values = self.cursor.fetchall()
         for value in values:
             print(value)
 
+    def close_cursor(self):
+        #关闭cursor
         self.cursor.close()
 
 
@@ -105,11 +117,9 @@ if __name__ == '__main__':
             "test_duration"
         ]}
 
-    columns = jenkinsbuilddata["Columns"]
-    columns = tuple(columns)
-    columns = str(columns).replace('\'', '')
     rows = jenkinsbuilddata["jenkinsbuilddata"]["Data"]
-
     JenkinsBuildData = DataBase(host='127.0.0.1', port=3306, user='root', passwd='201211', database="test",
-                                table="jenkinsbuilddata", columns=columns, rows=rows)
+                                table="jenkinsbuilddata", rows=rows)
     JenkinsBuildData.push()
+    JenkinsBuildData.select_column_to_print(column="build_num_api,build_result")
+    JenkinsBuildData.close_cursor()
