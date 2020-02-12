@@ -4,26 +4,23 @@ import mysql.connector
 
 
 class DataBase():
-    def __init__(self, host, port, user, passwd, database, table_name, data):
+    def __init__(self, host, port, user, passwd, database, table, columns, rows):
         self.host = host
         self.port = port
         self.user = user
         self.passwd= passwd
         self.database = database
-        self.table_name = table_name
-        self.data = data
+        self.table = table
+        self.columns = columns
+        self.rows = rows
         self.conn = mysql.connector.connect(host=self.host, port=self.port, user=self.user,
                                        password=self.passwd, database=self.database, charset='utf8')
         self.cursor = self.conn.cursor()
 
     def push(self):
-        columns = self.data["Columns"]
-        columns = tuple(columns)
-        columns = str(columns).replace('\'', '')
-        rows = self.data["jenkinsbuilddata"]["Data"]
-        for row in rows:
+        for row in self.rows:
             row = tuple(row)
-            sql_insert_sentence = "insert into " + str(self.table_name) + columns + " values" + str(row)
+            sql_insert_sentence = "insert into " + str(self.table) + str(self.columns) + " values" + str(row)
             try:
                 #尝试插入一条数据
                 self.cursor.execute(sql_insert_sentence)
@@ -33,7 +30,7 @@ class DataBase():
 
         self.conn.commit()
 
-        self.cursor.execute("select * from " + str(self.table_name))
+        self.cursor.execute("select * from " + str(self.table))
         values = self.cursor.fetchall()
         for value in values:
             print(value)
@@ -108,6 +105,11 @@ if __name__ == '__main__':
             "test_duration"
         ]}
 
+    columns = jenkinsbuilddata["Columns"]
+    columns = tuple(columns)
+    columns = str(columns).replace('\'', '')
+    rows = jenkinsbuilddata["jenkinsbuilddata"]["Data"]
+
     JenkinsBuildData = DataBase(host='127.0.0.1', port=3306, user='root', passwd='201211', database="test",
-                                table_name="jenkinsbuilddata", data=jenkinsbuilddata)
+                                table="jenkinsbuilddata", columns=columns, rows=rows)
     JenkinsBuildData.push()
